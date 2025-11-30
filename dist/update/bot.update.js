@@ -16,10 +16,13 @@ exports.BotUpdate = void 0;
 const nestjs_telegraf_1 = require("nestjs-telegraf");
 const telegraf_1 = require("telegraf");
 const tiktok_service_1 = require("./../service/tiktok.service");
+const stats_service_1 = require("./../stats/stats.service");
 let BotUpdate = class BotUpdate {
     tiktokService;
-    constructor(tiktokService) {
+    statsService;
+    constructor(tiktokService, statsService) {
         this.tiktokService = tiktokService;
+        this.statsService = statsService;
     }
     async start(ctx) {
         await ctx.reply('👋 TikTok linkini göndər, mən sənə watermark-sız videonu atım!');
@@ -30,7 +33,9 @@ let BotUpdate = class BotUpdate {
         }
         await ctx.reply('⏳ Videonu yükləyirəm, gözlə...');
         try {
-            const videoBuffer = await this.tiktokService.getVideo(url);
+            const { videoBuffer, username } = await this.tiktokService.getVideo(url);
+            const telegramUser = ctx.from;
+            this.statsService.logDownload(url, username, telegramUser?.id, telegramUser?.username);
             await ctx.replyWithVideo({ source: videoBuffer });
         }
         catch (err) {
@@ -57,6 +62,7 @@ __decorate([
 ], BotUpdate.prototype, "onText", null);
 exports.BotUpdate = BotUpdate = __decorate([
     (0, nestjs_telegraf_1.Update)(),
-    __metadata("design:paramtypes", [tiktok_service_1.TikTokService])
+    __metadata("design:paramtypes", [tiktok_service_1.TikTokService,
+        stats_service_1.StatsService])
 ], BotUpdate);
 //# sourceMappingURL=bot.update.js.map

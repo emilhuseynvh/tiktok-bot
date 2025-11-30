@@ -11,19 +11,23 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TikTokService = void 0;
 const common_1 = require("@nestjs/common");
-const tiktok_api_dl_1 = require("@tobyg74/tiktok-api-dl");
 const axios_1 = __importDefault(require("axios"));
 let TikTokService = class TikTokService {
     async getVideo(url) {
-        const data = await (0, tiktok_api_dl_1.Downloader)(url, { version: 'v3' });
-        const videoUrl = data.result?.videoHD || data.result?.videoSD;
-        if (!videoUrl) {
+        const response = await axios_1.default.get(`https://tikwm.com/api/?url=${encodeURIComponent(url)}`);
+        const data = response.data;
+        if (data.code !== 0 || !data.data?.play) {
             throw new Error('Video URL tapılmadı');
         }
+        const videoUrl = data.data.hdplay || data.data.play;
+        const username = data.data.author?.unique_id || data.data.author?.nickname;
         const video = await axios_1.default.get(videoUrl, {
             responseType: 'arraybuffer',
         });
-        return Buffer.from(video.data);
+        return {
+            videoBuffer: Buffer.from(video.data),
+            username,
+        };
     }
 };
 exports.TikTokService = TikTokService;
