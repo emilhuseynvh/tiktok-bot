@@ -1,17 +1,20 @@
 import { Injectable } from '@nestjs/common';
-import { Downloader } from '@tobyg74/tiktok-api-dl';
 import axios from 'axios';
 
 @Injectable()
 export class TikTokService {
   async getVideo(url: string): Promise<Buffer> {
-    const data = await Downloader(url, { version: 'v3' });
-    console.log(data);
-    const videoUrl = data.result?.videoHD || data.result?.videoSD;
+    const response = await axios.get(
+      `https://tikwm.com/api/?url=${encodeURIComponent(url)}`,
+    );
 
-    if (!videoUrl) {
+    const data = response.data;
+
+    if (data.code !== 0 || !data.data?.play) {
       throw new Error('Video URL tapılmadı');
     }
+
+    const videoUrl = data.data.hdplay || data.data.play;
 
     const video = await axios.get(videoUrl, {
       responseType: 'arraybuffer',
