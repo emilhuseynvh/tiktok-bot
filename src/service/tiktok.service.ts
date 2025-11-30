@@ -6,7 +6,7 @@ import axios from 'axios';
 export class TikTokService {
   async getVideo(url: string): Promise<Buffer> {
     const data = await Downloader(url, { version: 'v3' });
-
+    console.log(data);
     const videoUrl = data.result?.videoHD || data.result?.videoSD;
 
     if (!videoUrl) {
