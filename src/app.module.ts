@@ -5,6 +5,7 @@ import { TelegrafModule } from 'nestjs-telegraf';
 import config from './config';
 import { BotUpdate } from './update/bot.update';
 import { TikTokService } from './service/tiktok.service';
+import { InstagramService } from './service/instagram.service';
 import { StatsModule } from './stats/stats.module';
 
 @Module({
@@ -15,6 +16,6 @@ import { StatsModule } from './stats/stats.module';
     StatsModule,
   ],
   controllers: [AppController],
-  providers: [AppService, BotUpdate, TikTokService],
+  providers: [AppService, BotUpdate, TikTokService, InstagramService],
 })
 export class AppModule {}

@@ -16,30 +16,48 @@ exports.BotUpdate = void 0;
 const nestjs_telegraf_1 = require("nestjs-telegraf");
 const telegraf_1 = require("telegraf");
 const tiktok_service_1 = require("./../service/tiktok.service");
+const instagram_service_1 = require("./../service/instagram.service");
 const stats_service_1 = require("./../stats/stats.service");
 let BotUpdate = class BotUpdate {
     tiktokService;
+    instagramService;
     statsService;
-    constructor(tiktokService, statsService) {
+    constructor(tiktokService, instagramService, statsService) {
         this.tiktokService = tiktokService;
+        this.instagramService = instagramService;
         this.statsService = statsService;
     }
     async start(ctx) {
-        await ctx.reply('👋 TikTok linkini göndər, mən sənə watermark-sız videonu atım!');
+        await ctx.reply('👋 TikTok və ya Instagram linkini göndər, mən sənə videonu/şəkli atım!');
     }
     async onText(ctx, url) {
-        if (!url.includes('tiktok.com')) {
-            return ctx.reply('❌ Zəhmət olmasa TikTok linki göndər');
+        const isTikTok = url.includes('tiktok.com');
+        const isInstagram = url.includes('instagram.com');
+        if (!isTikTok && !isInstagram) {
+            return ctx.reply('❌ Zəhmət olmasa TikTok və ya Instagram linki göndər');
         }
-        await ctx.reply('⏳ Videonu yükləyirəm, gözlə...');
+        await ctx.reply('⏳ Yükləyirəm, gözlə...');
+        const telegramUser = ctx.from;
         try {
-            const { videoBuffer, username } = await this.tiktokService.getVideo(url);
-            const telegramUser = ctx.from;
-            this.statsService.logDownload(url, username, telegramUser?.id, telegramUser?.username);
-            await ctx.replyWithVideo({ source: videoBuffer });
+            if (isTikTok) {
+                const { videoBuffer, username } = await this.tiktokService.getVideo(url);
+                this.statsService.logDownload(url, username, telegramUser?.id, telegramUser?.username);
+                await ctx.replyWithVideo({ source: videoBuffer });
+            }
+            else {
+                const { type, buffer, username } = await this.instagramService.getMedia(url);
+                this.statsService.logDownload(url, username, telegramUser?.id, telegramUser?.username);
+                if (type === 'video') {
+                    await ctx.replyWithVideo({ source: buffer });
+                }
+                else {
+                    await ctx.replyWithPhoto({ source: buffer });
+                }
+            }
         }
         catch (err) {
-            await ctx.reply('❌ Videonu yükləməkdə problem oldu, başqa link göndər');
+            const errorMessage = err instanceof Error ? err.message : String(err);
+            await ctx.reply(`❌ Xəta: ${errorMessage}`);
             console.log(err);
         }
     }
@@ -63,6 +81,7 @@ __decorate([
 exports.BotUpdate = BotUpdate = __decorate([
     (0, nestjs_telegraf_1.Update)(),
     __metadata("design:paramtypes", [tiktok_service_1.TikTokService,
+        instagram_service_1.InstagramService,
         stats_service_1.StatsService])
 ], BotUpdate);
 //# sourceMappingURL=bot.update.js.map

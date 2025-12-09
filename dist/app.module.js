@@ -17,6 +17,7 @@ const nestjs_telegraf_1 = require("nestjs-telegraf");
 const config_1 = __importDefault(require("./config"));
 const bot_update_1 = require("./update/bot.update");
 const tiktok_service_1 = require("./service/tiktok.service");
+const instagram_service_1 = require("./service/instagram.service");
 const stats_module_1 = require("./stats/stats.module");
 let AppModule = class AppModule {
 };
@@ -30,7 +31,7 @@ exports.AppModule = AppModule = __decorate([
             stats_module_1.StatsModule,
         ],
         controllers: [app_controller_1.AppController],
-        providers: [app_service_1.AppService, bot_update_1.BotUpdate, tiktok_service_1.TikTokService],
+        providers: [app_service_1.AppService, bot_update_1.BotUpdate, tiktok_service_1.TikTokService, instagram_service_1.InstagramService],
     })
 ], AppModule);
 //# sourceMappingURL=app.module.js.map
