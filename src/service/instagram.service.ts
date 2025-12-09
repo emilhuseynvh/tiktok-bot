@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import axios from 'axios';
-import { instagramGetUrl } from 'instagram-url-direct';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
+
+const execAsync = promisify(exec);
 
 export interface InstagramMediaData {
   type: 'video' | 'image';
@@ -11,28 +16,44 @@ export interface InstagramMediaData {
 @Injectable()
 export class InstagramService {
   async getMedia(url: string): Promise<InstagramMediaData> {
-    const data = await instagramGetUrl(url);
-    console.log('Instagram response:', JSON.stringify(data, null, 2));
+    const tempDir = os.tmpdir();
+    const tempFile = path.join(tempDir, `ig_${Date.now()}`);
 
-    if (!data || !data.url_list || data.url_list.length === 0) {
-      throw new Error('Instagram media tapılmadı');
+    try {
+      // yt-dlp ilə yüklə
+      const { stdout } = await execAsync(
+        `yt-dlp -o "${tempFile}.%(ext)s" --print filename "${url}"`,
+        { timeout: 60000 },
+      );
+
+      const downloadedFile = stdout.trim();
+      console.log('Downloaded file:', downloadedFile);
+
+      if (!fs.existsSync(downloadedFile)) {
+        throw new Error('Fayl yüklənmədi');
+      }
+
+      const buffer = fs.readFileSync(downloadedFile);
+      const isVideo = downloadedFile.endsWith('.mp4') || downloadedFile.endsWith('.webm');
+
+      // Temp faylı sil
+      fs.unlinkSync(downloadedFile);
+
+      return {
+        type: isVideo ? 'video' : 'image',
+        buffer,
+        username: undefined,
+      };
+    } catch (error) {
+      // Temp faylları təmizlə
+      const files = fs.readdirSync(tempDir).filter(f => f.startsWith('ig_'));
+      files.forEach(f => {
+        try {
+          fs.unlinkSync(path.join(tempDir, f));
+        } catch {}
+      });
+
+      throw new Error(`Instagram yükləmə xətası: ${error instanceof Error ? error.message : error}`);
     }
-
-    const mediaUrl = data.url_list[0];
-    const isVideo = mediaUrl.includes('.mp4') || mediaUrl.includes('video');
-
-    const mediaResponse = await axios.get(mediaUrl, {
-      responseType: 'arraybuffer',
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      },
-    });
-
-    return {
-      type: isVideo ? 'video' : 'image',
-      buffer: Buffer.from(mediaResponse.data),
-      username: undefined,
-    };
   }
 }
