@@ -17,7 +17,7 @@ export class StatsController {
 
   @Get('recent')
   getRecentDownloads(@Query('limit') limit?: string) {
-    const parsedLimit = limit ? parseInt(limit, 10) : 10;
+    const parsedLimit = limit ? parseInt(limit, 10) : 50;
     return this.statsService.getRecentDownloads(parsedLimit);
   }
 }

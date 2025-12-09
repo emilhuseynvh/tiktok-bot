@@ -27,7 +27,7 @@ let StatsController = class StatsController {
         return { totalDownloads: this.statsService.getTotalDownloads() };
     }
     getRecentDownloads(limit) {
-        const parsedLimit = limit ? parseInt(limit, 10) : 10;
+        const parsedLimit = limit ? parseInt(limit, 10) : 50;
         return this.statsService.getRecentDownloads(parsedLimit);
     }
 };

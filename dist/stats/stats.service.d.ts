@@ -18,4 +18,5 @@ export declare class StatsService {
     getStats(): StatsData;
     getTotalDownloads(): number;
     getRecentDownloads(limit?: number): VideoDownload[];
+    getAllUserIds(): number[];
 }

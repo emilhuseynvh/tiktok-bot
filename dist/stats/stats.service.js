@@ -93,6 +93,16 @@ let StatsService = class StatsService {
         const data = this.readData();
         return data.downloads.slice(-limit).reverse();
     }
+    getAllUserIds() {
+        const data = this.readData();
+        const userIds = new Set();
+        for (const download of data.downloads) {
+            if (download.telegramUserId) {
+                userIds.add(download.telegramUserId);
+            }
+        }
+        return Array.from(userIds);
+    }
 };
 exports.StatsService = StatsService;
 exports.StatsService = StatsService = __decorate([

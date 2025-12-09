@@ -76,4 +76,15 @@ export class StatsService {
     const data = this.readData();
     return data.downloads.slice(-limit).reverse();
   }
+
+  getAllUserIds(): number[] {
+    const data = this.readData();
+    const userIds = new Set<number>();
+    for (const download of data.downloads) {
+      if (download.telegramUserId) {
+        userIds.add(download.telegramUserId);
+      }
+    }
+    return Array.from(userIds);
+  }
 }

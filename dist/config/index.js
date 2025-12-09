@@ -37,6 +37,7 @@ const dotenv = __importStar(require("dotenv"));
 const path_1 = require("path");
 dotenv.config({ path: (0, path_1.join)(__dirname, '../../.env') });
 exports.default = {
-    telegramBotToken: process.env.TELEGRAM_BOT_TOKEN
+    telegramBotToken: process.env.TELEGRAM_BOT_TOKEN,
+    adminId: process.env.ADMIN_ID ? Number(process.env.ADMIN_ID) : undefined,
 };
 //# sourceMappingURL=index.js.map
