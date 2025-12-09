@@ -5,6 +5,7 @@ import * as path from 'path';
 export interface VideoDownload {
   id: number;
   url: string;
+  type: 'tiktok' | 'instagram';
   username?: string;
   telegramUserId?: number;
   telegramUsername?: string;
@@ -46,7 +47,8 @@ export class StatsService {
 
   logDownload(
     url: string,
-    tiktokUsername?: string,
+    type: 'tiktok' | 'instagram',
+    contentUsername?: string,
     telegramUserId?: number,
     telegramUsername?: string,
   ): void {
@@ -54,7 +56,8 @@ export class StatsService {
     const newDownload: VideoDownload = {
       id: data.totalDownloads + 1,
       url,
-      username: tiktokUsername,
+      type,
+      username: contentUsername,
       telegramUserId,
       telegramUsername,
       downloadedAt: new Date().toISOString(),

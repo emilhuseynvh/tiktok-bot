@@ -82,12 +82,12 @@ let BotUpdate = class BotUpdate {
         try {
             if (isTikTok) {
                 const { videoBuffer, username } = await this.tiktokService.getVideo(text);
-                this.statsService.logDownload(text, username, telegramUser?.id, telegramUser?.username);
+                this.statsService.logDownload(text, 'tiktok', username, telegramUser?.id, telegramUser?.username);
                 await ctx.replyWithVideo({ source: videoBuffer });
             }
             else {
                 const { type, buffer, username } = await this.instagramService.getMedia(text);
-                this.statsService.logDownload(text, username, telegramUser?.id, telegramUser?.username);
+                this.statsService.logDownload(text, 'instagram', username, telegramUser?.id, telegramUser?.username);
                 if (type === 'video') {
                     await ctx.replyWithVideo({ source: buffer });
                 }

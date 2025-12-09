@@ -90,6 +90,7 @@ export class BotUpdate {
 
         this.statsService.logDownload(
           text,
+          'tiktok',
           username,
           telegramUser?.id,
           telegramUser?.username,
@@ -101,6 +102,7 @@ export class BotUpdate {
 
         this.statsService.logDownload(
           text,
+          'instagram',
           username,
           telegramUser?.id,
           telegramUser?.username,
