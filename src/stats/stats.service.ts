@@ -6,6 +6,8 @@ export interface VideoDownload {
   id: number;
   url: string;
   type: 'tiktok' | 'instagram';
+  format: 'video' | 'audio';
+  success: boolean;
   username?: string;
   telegramUserId?: number;
   telegramUsername?: string;
@@ -48,6 +50,8 @@ export class StatsService {
   logDownload(
     url: string,
     type: 'tiktok' | 'instagram',
+    format: 'video' | 'audio',
+    success: boolean,
     contentUsername?: string,
     telegramUserId?: number,
     telegramUsername?: string,
@@ -57,6 +61,8 @@ export class StatsService {
       id: data.totalDownloads + 1,
       url,
       type,
+      format,
+      success,
       username: contentUsername,
       telegramUserId,
       telegramUsername,

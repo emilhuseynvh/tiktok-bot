@@ -28,6 +28,7 @@ let BotUpdate = class BotUpdate {
     instagramService;
     statsService;
     broadcastMessage = null;
+    pendingDownloads = new Map();
     constructor(bot, tiktokService, instagramService, statsService) {
         this.bot = bot;
         this.tiktokService = tiktokService;
@@ -77,28 +78,71 @@ let BotUpdate = class BotUpdate {
         if (!isTikTok && !isInstagram) {
             return ctx.reply('❌ Zəhmət olmasa TikTok və ya Instagram linki göndər');
         }
-        await ctx.reply('⏳ Yükləyirəm, gözlə...');
-        const telegramUser = ctx.from;
+        const userId = ctx.from?.id;
+        if (!userId)
+            return;
+        const msg = await ctx.reply('📥 Necə yükləmək istəyirsən?', telegraf_1.Markup.inlineKeyboard([
+            [
+                telegraf_1.Markup.button.callback('🎬 Video', 'download_video'),
+                telegraf_1.Markup.button.callback('🎵 Audio', 'download_audio'),
+            ],
+        ]));
+        this.pendingDownloads.set(userId, {
+            url: text,
+            type: isTikTok ? 'tiktok' : 'instagram',
+            messageId: msg.message_id,
+        });
+    }
+    async onDownloadVideo(ctx) {
+        await this.handleDownload(ctx, 'video');
+    }
+    async onDownloadAudio(ctx) {
+        await this.handleDownload(ctx, 'audio');
+    }
+    async handleDownload(ctx, format) {
+        const userId = ctx.from?.id;
+        if (!userId)
+            return;
+        const pending = this.pendingDownloads.get(userId);
+        if (!pending) {
+            await ctx.answerCbQuery('❌ Link tapılmadı, yenidən göndər');
+            return;
+        }
+        this.pendingDownloads.delete(userId);
+        await ctx.editMessageText('⏳ Yükləyirəm, gözlə...');
+        const shareButton = telegraf_1.Markup.inlineKeyboard([
+            [telegraf_1.Markup.button.switchToChat('📢 Dostlarınla paylaş', 'Bu botla TikTok və Instagram videolarını yüklə! 👉 @apasni_tiktok_bot')],
+        ]);
         try {
-            if (isTikTok) {
-                const { videoBuffer, username } = await this.tiktokService.getVideo(text);
-                this.statsService.logDownload(text, 'tiktok', username, telegramUser?.id, telegramUser?.username);
-                await ctx.replyWithVideo({ source: videoBuffer });
-            }
-            else {
-                const { type, buffer, username } = await this.instagramService.getMedia(text);
-                this.statsService.logDownload(text, 'instagram', username, telegramUser?.id, telegramUser?.username);
-                if (type === 'video') {
-                    await ctx.replyWithVideo({ source: buffer });
+            if (pending.type === 'tiktok') {
+                const { videoBuffer, username } = await this.tiktokService.getVideo(pending.url);
+                if (format === 'video') {
+                    await ctx.replyWithVideo({ source: videoBuffer }, shareButton);
                 }
                 else {
-                    await ctx.replyWithPhoto({ source: buffer });
+                    await ctx.replyWithAudio({ source: videoBuffer, filename: 'audio.mp3' }, shareButton);
                 }
+                this.statsService.logDownload(pending.url, 'tiktok', format, true, username, userId, ctx.from?.username);
             }
+            else {
+                const { type, buffer, username } = await this.instagramService.getMedia(pending.url);
+                if (type === 'image') {
+                    await ctx.replyWithPhoto({ source: buffer }, shareButton);
+                }
+                else if (format === 'video') {
+                    await ctx.replyWithVideo({ source: buffer }, shareButton);
+                }
+                else {
+                    await ctx.replyWithAudio({ source: buffer, filename: 'audio.mp3' }, shareButton);
+                }
+                this.statsService.logDownload(pending.url, 'instagram', type === 'image' ? 'video' : format, true, username, userId, ctx.from?.username);
+            }
+            await ctx.deleteMessage(pending.messageId).catch(() => { });
         }
         catch (err) {
             const errorMessage = err instanceof Error ? err.message : String(err);
-            await ctx.reply(`❌ Xəta: ${errorMessage}`);
+            await ctx.editMessageText(`❌ Xəta: ${errorMessage}`);
+            this.statsService.logDownload(pending.url, pending.type, format, false, undefined, userId, ctx.from?.username);
             console.log(err);
         }
     }
@@ -133,6 +177,20 @@ __decorate([
     __metadata("design:paramtypes", [telegraf_1.Context, String]),
     __metadata("design:returntype", Promise)
 ], BotUpdate.prototype, "onText", null);
+__decorate([
+    (0, nestjs_telegraf_1.Action)('download_video'),
+    __param(0, (0, nestjs_telegraf_1.Ctx)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [telegraf_1.Context]),
+    __metadata("design:returntype", Promise)
+], BotUpdate.prototype, "onDownloadVideo", null);
+__decorate([
+    (0, nestjs_telegraf_1.Action)('download_audio'),
+    __param(0, (0, nestjs_telegraf_1.Ctx)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [telegraf_1.Context]),
+    __metadata("design:returntype", Promise)
+], BotUpdate.prototype, "onDownloadAudio", null);
 exports.BotUpdate = BotUpdate = __decorate([
     (0, nestjs_telegraf_1.Update)(),
     __param(0, (0, nestjs_telegraf_1.InjectBot)()),

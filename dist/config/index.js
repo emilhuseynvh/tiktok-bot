@@ -39,5 +39,6 @@ dotenv.config({ path: (0, path_1.join)(__dirname, '../../.env') });
 exports.default = {
     telegramBotToken: process.env.TELEGRAM_BOT_TOKEN,
     adminId: process.env.ADMIN_ID ? Number(process.env.ADMIN_ID) : undefined,
+    channelLink: process.env.CHANNEL_LINK || 'https://t.me/your_channel',
 };
 //# sourceMappingURL=index.js.map

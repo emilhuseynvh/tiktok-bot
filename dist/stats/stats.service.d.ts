@@ -2,6 +2,8 @@ export interface VideoDownload {
     id: number;
     url: string;
     type: 'tiktok' | 'instagram';
+    format: 'video' | 'audio';
+    success: boolean;
     username?: string;
     telegramUserId?: number;
     telegramUsername?: string;
@@ -15,7 +17,7 @@ export declare class StatsService {
     private readonly dataPath;
     private readData;
     private writeData;
-    logDownload(url: string, type: 'tiktok' | 'instagram', contentUsername?: string, telegramUserId?: number, telegramUsername?: string): void;
+    logDownload(url: string, type: 'tiktok' | 'instagram', format: 'video' | 'audio', success: boolean, contentUsername?: string, telegramUserId?: number, telegramUsername?: string): void;
     getStats(): StatsData;
     getTotalDownloads(): number;
     getRecentDownloads(limit?: number): VideoDownload[];

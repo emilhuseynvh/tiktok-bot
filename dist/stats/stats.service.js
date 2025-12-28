@@ -69,12 +69,14 @@ let StatsService = class StatsService {
             console.error('Error writing stats file:', error);
         }
     }
-    logDownload(url, type, contentUsername, telegramUserId, telegramUsername) {
+    logDownload(url, type, format, success, contentUsername, telegramUserId, telegramUsername) {
         const data = this.readData();
         const newDownload = {
             id: data.totalDownloads + 1,
             url,
             type,
+            format,
+            success,
             username: contentUsername,
             telegramUserId,
             telegramUsername,

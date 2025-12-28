@@ -1,13 +1,20 @@
-import { Update, Start, On, Ctx, Message, Command, InjectBot } from 'nestjs-telegraf';
-import { Context, Telegraf } from 'telegraf';
+import { Update, Start, On, Ctx, Message, Command, InjectBot, Action } from 'nestjs-telegraf';
+import { Context, Telegraf, Markup } from 'telegraf';
 import { TikTokService } from './../service/tiktok.service';
 import { InstagramService } from './../service/instagram.service';
 import { StatsService } from './../stats/stats.service';
 import config from './../config';
 
+interface PendingDownload {
+  url: string;
+  type: 'tiktok' | 'instagram';
+  messageId: number;
+}
+
 @Update()
 export class BotUpdate {
   private broadcastMessage: string | null = null;
+  private pendingDownloads: Map<number, PendingDownload> = new Map();
 
   constructor(
     @InjectBot() private readonly bot: Telegraf<Context>,
@@ -80,43 +87,113 @@ export class BotUpdate {
       return ctx.reply('❌ Zəhmət olmasa TikTok və ya Instagram linki göndər');
     }
 
-    await ctx.reply('⏳ Yükləyirəm, gözlə...');
+    const userId = ctx.from?.id;
+    if (!userId) return;
 
-    const telegramUser = ctx.from;
+    // Seçim buttonları göstər
+    const msg = await ctx.reply(
+      '📥 Necə yükləmək istəyirsən?',
+      Markup.inlineKeyboard([
+        [
+          Markup.button.callback('🎬 Video', 'download_video'),
+          Markup.button.callback('🎵 Audio', 'download_audio'),
+        ],
+      ]),
+    );
+
+    // URL-i saxla
+    this.pendingDownloads.set(userId, {
+      url: text,
+      type: isTikTok ? 'tiktok' : 'instagram',
+      messageId: msg.message_id,
+    });
+  }
+
+  @Action('download_video')
+  async onDownloadVideo(@Ctx() ctx: Context) {
+    await this.handleDownload(ctx, 'video');
+  }
+
+  @Action('download_audio')
+  async onDownloadAudio(@Ctx() ctx: Context) {
+    await this.handleDownload(ctx, 'audio');
+  }
+
+  private async handleDownload(ctx: Context, format: 'video' | 'audio') {
+    const userId = ctx.from?.id;
+    if (!userId) return;
+
+    const pending = this.pendingDownloads.get(userId);
+    if (!pending) {
+      await ctx.answerCbQuery('❌ Link tapılmadı, yenidən göndər');
+      return;
+    }
+
+    this.pendingDownloads.delete(userId);
+
+    // Buttonları sil və status göstər
+    await ctx.editMessageText('⏳ Yükləyirəm, gözlə...');
+
+    const shareButton = Markup.inlineKeyboard([
+      [Markup.button.switchToChat('📢 Dostlarınla paylaş', 'Bu botla TikTok və Instagram videolarını yüklə! 👉 @apasni_tiktok_bot')],
+    ]);
 
     try {
-      if (isTikTok) {
-        const { videoBuffer, username } = await this.tiktokService.getVideo(text);
+      if (pending.type === 'tiktok') {
+        const { videoBuffer, username } = await this.tiktokService.getVideo(pending.url);
 
-        this.statsService.logDownload(
-          text,
-          'tiktok',
-          username,
-          telegramUser?.id,
-          telegramUser?.username,
-        );
-
-        await ctx.replyWithVideo({ source: videoBuffer });
-      } else {
-        const { type, buffer, username } = await this.instagramService.getMedia(text);
-
-        this.statsService.logDownload(
-          text,
-          'instagram',
-          username,
-          telegramUser?.id,
-          telegramUser?.username,
-        );
-
-        if (type === 'video') {
-          await ctx.replyWithVideo({ source: buffer });
+        if (format === 'video') {
+          await ctx.replyWithVideo({ source: videoBuffer }, shareButton);
         } else {
-          await ctx.replyWithPhoto({ source: buffer });
+          await ctx.replyWithAudio({ source: videoBuffer, filename: 'audio.mp3' }, shareButton);
         }
+
+        this.statsService.logDownload(
+          pending.url,
+          'tiktok',
+          format,
+          true,
+          username,
+          userId,
+          ctx.from?.username,
+        );
+      } else {
+        const { type, buffer, username } = await this.instagramService.getMedia(pending.url);
+
+        if (type === 'image') {
+          await ctx.replyWithPhoto({ source: buffer }, shareButton);
+        } else if (format === 'video') {
+          await ctx.replyWithVideo({ source: buffer }, shareButton);
+        } else {
+          await ctx.replyWithAudio({ source: buffer, filename: 'audio.mp3' }, shareButton);
+        }
+
+        this.statsService.logDownload(
+          pending.url,
+          'instagram',
+          type === 'image' ? 'video' : format,
+          true,
+          username,
+          userId,
+          ctx.from?.username,
+        );
       }
+
+      await ctx.deleteMessage(pending.messageId).catch(() => {});
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
-      await ctx.reply(`❌ Xəta: ${errorMessage}`);
+      await ctx.editMessageText(`❌ Xəta: ${errorMessage}`);
+
+      this.statsService.logDownload(
+        pending.url,
+        pending.type,
+        format,
+        false,
+        undefined,
+        userId,
+        ctx.from?.username,
+      );
+
       console.log(err);
     }
   }
