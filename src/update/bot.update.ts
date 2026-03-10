@@ -136,6 +136,7 @@ export class BotUpdate {
 
     const shareButton = Markup.inlineKeyboard([
       [Markup.button.switchToChat('📢 Dostlarınla paylaş', 'Bu botla TikTok və Instagram videolarını yüklə! 👉 @apasni_tiktok_bot')],
+      [Markup.button.url('☕ Donate', 'https://kofe.al/@emilhuseynvh')],
     ]);
 
     try {
